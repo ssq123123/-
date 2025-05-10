@@ -1,0 +1,7 @@
+{
+    "usingComponents": {
+      "score-modal": "../../components/score-modal/score-modal"
+    },
+    "navigationBarTitleText": "麻将计分器",
+    "enablePullDownRefresh": false
+  }

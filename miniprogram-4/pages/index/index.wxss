@@ -1,0 +1,168 @@
+/* pages/index/index.wxss */
+/* 核心布局改造 */
+.container {
+    padding: 20rpx;
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* 关键改造：容器占满屏幕高度 */
+  }
+  
+  /* 卡片通用样式 */
+  .card {
+    background: white;
+    border-radius: 16rpx;
+    padding: 20rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1);
+  }
+  
+  /* 上半区：位置/分数/倒计时 */
+  .card:first-child {
+    flex: 0 0 auto; /* 不自动扩展 */
+    max-height: 40vh; /* 最大高度 */
+    overflow-y: auto; /* 支持滚动 */
+    margin-bottom: 15rpx; /* 缩小间距 */
+  }
+  
+  /* 中间区：操作按钮 */
+  .card:nth-child(2) {
+    flex: 0 0 200rpx; /* 固定高度 */
+    margin-bottom: 15rpx;
+  }
+  
+  /* 下半区：操作记录 */
+  .log-container {
+    flex: 1; /* 自动填充剩余空间 */
+    position: static !important; /* 移除固定定位 */
+    height: auto; /* 高度自适应 */
+    bottom: auto;
+    left: auto;
+    right: auto;
+  }
+  
+  /* 倒计时和局数 */
+  .flex-row.between {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20rpx;
+    margin-bottom: 20rpx;
+  }
+  
+  .countdown-box, .game-number {
+    font-size: 26rpx;
+    color: #666;
+  }
+  
+  /* 统计文字 */
+  .stats-text {
+    font-size: 22rpx;
+    color: #888;
+    line-height: 1.4;
+    margin-top: 8rpx;
+  }
+  
+  /* 通用样式 */
+  .text-center { text-align: center; }
+  .bold { font-weight: bold; }
+  .mb-20 { margin-bottom: 20rpx; }
+  .flex-col { display: flex; flex-direction: column; }
+  .flex-row { display: flex; flex-direction: row; }
+  .center { justify-content: center; align-items: center; }
+  
+  /* 按钮样式 */
+  .btn {
+    margin: 8rpx; /* 缩小间距 */
+    padding: 10rpx 20rpx; /* 缩小内边距 */
+    border-radius: 40rpx;
+    font-size: 26rpx; /* 缩小字体 */
+  }
+  
+  .btn-primary {
+    background: #1A237E;
+    color: white;
+  }
+  
+  .btn-secondary {
+    background: #616161;
+    color: white;
+  }
+  
+  .btn-settings {
+    background: #607D8B !important;
+    color: white !important;
+  }
+  
+  /* 操作记录区域 */
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20rpx;
+    border-bottom: 1rpx solid #eee;
+  }
+  
+  .btn-scroll {
+    font-size: 24rpx;
+    padding: 8rpx 16rpx;
+    background: #f0f0f0;
+    border-radius: 40rpx;
+    color: #666;
+  }
+  
+  .log-item text {
+    line-height: 1.6;
+    color: #666;
+  }
+  
+  /* 分数显示优化 */
+  .score {
+    font-size: 32rpx; /* 原36rpx */
+    font-weight: bold;
+    color: #1A237E;
+    margin-top: 4rpx; /* 缩小间距 */
+  }
+  
+  /* 设置模态框 */
+  .settings-modal {
+    padding: 30rpx;
+  }
+  
+  .modal-title {
+    font-size: 34rpx;
+    font-weight: bold;
+    margin-bottom: 30rpx;
+    text-align: center;
+  }
+  
+  .setting-item {
+    display: flex;
+    align-items: center;
+    margin: 20rpx 0;
+    justify-content: space-between;
+  }
+  
+  .setting-item text {
+    width: 200rpx;
+    font-size: 28rpx;
+  }
+  
+  .setting-item input {
+    border: 1rpx solid #ddd;
+    padding: 10rpx;
+    width: 200rpx;
+    text-align: right;
+  }
+  
+  .setting-item slider {
+    flex: 1;
+    margin-left: 20rpx;
+  }
+  
+  /* 小屏幕适配 */
+  @media (max-height: 1000rpx) {
+    .card:first-child {
+      max-height: 35vh; /* 更小的高度 */
+    }
+    .card:nth-child(2) {
+      flex: 0 0 180rpx; /* 更紧凑的操作区 */
+    }
+  }

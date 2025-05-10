@@ -1,0 +1,53 @@
+<!--components/score-modal/score-modal.wxml-->
+<view class="modal-mask" wx:if="{{show}}" catchtap="onCancel">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">{{title}}</text>
+    </view>
+    
+    <view class="modal-content">
+      <!-- 操作按钮 -->
+      <view wx:if="{{type === 'action'}}">
+        <button 
+          wx:for="{{actions}}" 
+          wx:key="name" 
+          class="modal-button" 
+          bindtap="onConfirm" 
+          data-value="{{item.name}}"
+        >
+          {{item.text}}
+        </button>
+      </view>
+      
+      <!-- 数字选择 -->
+      <view wx:elif="{{type === 'number'}}" class="number-grid">
+        <button 
+          wx:for="{{numbers}}" 
+          wx:key="*this" 
+          class="number-button" 
+          bindtap="onConfirm" 
+          data-value="{{item}}"
+        >
+          {{item}}
+        </button>
+      </view>
+      
+      <!-- 玩家选择 -->
+      <view wx:elif="{{type === 'player'}}" class="player-grid">
+        <button 
+          wx:for="{{players}}" 
+          wx:key="name" 
+          class="player-button" 
+          bindtap="onConfirm" 
+          data-value="{{item.name}}"
+        >
+          {{item.text}}
+        </button>
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="modal-cancel-button" bindtap="onCancel">取消</button>
+    </view>
+  </view>
+</view>

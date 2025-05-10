@@ -1,0 +1,159 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 上半区：位置和分数显示 -->
+  <view class="card" style="width: 691rpx; height: 572rpx; display: block; box-sizing: border-box; position: relative; left: 11rpx; top: 14rpx">
+    <view class="flex-row between">
+      <view class="countdown-box">剩余时间：{{countdown}}</view>
+      <view class="game-number">第{{gameNumber}}局</view>
+    </view>
+    <view class="text-center bold mb-20"></view>
+    
+    <view wx:if="{{!positionSet}}" class="flex-col center">
+      <text class="mb-20">请选择您的位置：</text>
+      <view class="flex-row">
+        <button class="btn btn-primary" bindtap="setPosition" data-position="east" style="width: 281rpx; display: block; box-sizing: border-box; left: 0rpx; top: 0rpx">东</button>
+        <button class="btn btn-primary" bindtap="setPosition" data-position="south" style="width: 302rpx; height: 54rpx; display: block; box-sizing: border-box; left: 0rpx; top: 0rpx">南</button>
+      </view>
+      <view class="flex-row">
+        <button class="btn btn-primary" bindtap="setPosition" data-position="west" style="width: 283rpx; height: 54rpx; display: block; box-sizing: border-box; left: 2rpx; top: 0rpx">西</button>
+        <button class="btn btn-primary" bindtap="setPosition" data-position="north" style="width: 306rpx; height: 54rpx; display: block; box-sizing: border-box; left: 2rpx; top: 0rpx; position: relative">北</button>
+      </view>
+    </view>
+    
+    <view wx:else class="flex-col">
+      <view class="flex-row center mb-20">
+      </view>
+      
+      <view class="flex-row center mb-10">
+        <view class="flex-col center" style="width: 25%;">
+          <text>{{positions.north}}</text>
+          <text class="score">{{scores.north}}</text>
+          <text class="stats-text" wx:if="{{selfWinDuration.north > 0}}">
+            {{selfWinDuration.north}}分未自摸
+          </text>
+          <text class="stats-text">累计码:{{totalCodes.north}}</text>
+        </view>
+      </view>
+      
+      <view class="flex-row center mb-10">
+        <view class="flex-col center" style="width: 25%;">
+          <text>{{positions.west}}</text>
+          <text class="score">{{scores.west}}</text>
+          <text class="stats-text" wx:if="{{selfWinDuration.west > 0}}">
+            {{selfWinDuration.west}}分未自摸
+          </text>
+          <text class="stats-text">累计码:{{totalCodes.west}}</text>
+        </view>
+        <view class="flex-col center" style="width: 25%;">
+          <text>{{positions.east}}</text>
+          <text class="score">{{scores.east}}</text>
+          <text class="stats-text" wx:if="{{selfWinDuration.east > 0}}">
+            {{selfWinDuration.east}}分未自摸
+          </text>
+          <text class="stats-text">累计码:{{totalCodes.east}}</text>
+        </view>
+      </view>
+      
+      <view class="flex-row center">
+        <view class="flex-col center" style="width: 25%;">
+          <text>{{positions.south}}</text>
+          <text class="score">{{scores.south}}</text>
+          <text class="stats-text" wx:if="{{selfWinDuration.south > 0}}">
+            {{selfWinDuration.south}}分未自摸
+          </text>
+          <text class="stats-text">累计码:{{totalCodes.south}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 下半区：操作按钮和消息记录 -->
+  <view class="card" wx:if="{{positionSet}}">
+    <view class="flex-row center mb-20">
+      <button class="btn btn-secondary" bindtap="resetGame">重新开始</button>
+    </view>
+    
+    <view class="flex-row" style="flex-wrap: wrap;">
+      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="east">东家操作</button>
+      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="south">南家操作</button>
+      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="west">西家操作</button>
+      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="north">北家操作</button>
+      <button class="btn btn-settings" style="width: 95%; margin-top: 20rpx;" bindtap="showSettings">⚙️ 高级设置</button>
+    </view>
+  </view>
+  
+  <!-- 消息记录区域 -->
+  <view class="card log-container" wx:if="{{positionSet}}">
+    <view class="log-header">
+      <text class="bold">操作记录</text>
+      <button class="btn-scroll" bindtap="scrollToBottom">↓ 回到底部</button>
+    </view>
+    <scroll-view 
+      scroll-y 
+      style="height: 350rpx; font-size: {{settings.fontSize}}rpx;" 
+      scroll-top="{{scrollTop}}"
+      scroll-with-animation
+      bindscroll="onScroll"
+    >
+      <view wx:for="{{messageLog}}" wx:key="index" class="log-item">
+        <text>{{item}}</text>
+      </view>
+      <view id="anchor"></view>
+    </scroll-view>
+  </view>
+  
+  <!-- 模态框组件 -->
+  <score-modal 
+    id="actionModal" 
+    bind:confirm="handleAction" 
+    bind:cancel="hideAllModals"
+  />
+  <score-modal 
+    id="numberModal" 
+    bind:confirm="handleNumberConfirm" 
+    bind:cancel="hideAllModals"
+    type="number"
+  />
+  <score-modal 
+    id="playerModal" 
+    bind:confirm="handlePlayerConfirm" 
+    bind:cancel="hideAllModals"
+    type="player"
+  />
+  
+  <!-- 设置模态框 -->
+  <modal class="settings-modal" hidden="{{!showSettingsModal}}" bindcancel="hideSettings">
+    <view class="modal-title">游戏设置</view>
+    <form bindsubmit="saveSettings">
+      <view class="setting-item">
+        <text>抽水扣分数：</text>
+        <input 
+          type="number" 
+          name="waterValue" 
+          value="{{settings.waterValue}}" 
+          placeholder="默认2" 
+        />
+      </view>
+      <view class="setting-item">
+        <text>基础分数：</text>
+        <input 
+          type="number" 
+          name="baseScore" 
+          value="{{settings.baseScore}}" 
+          placeholder="默认100" 
+        />
+      </view>
+      <view class="setting-item">
+        <text>记录字体大小：</text>
+        <slider 
+          value="{{settings.fontSize}}" 
+          min="20" 
+          max="40" 
+          show-value 
+          bindchange="onFontSizeChange"
+        />
+      </view>
+      <button form-type="submit" hidden="true"></button>
+    </form>
+  </modal>
+</view>

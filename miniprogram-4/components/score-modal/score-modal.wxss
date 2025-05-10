@@ -1,0 +1,82 @@
+/* components/score-modal/score-modal.wxss */
+.modal-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+  
+  .modal-container {
+    width: 80%;
+    max-width: 600rpx;
+    background-color: white;
+    border-radius: 16rpx;
+    overflow: hidden;
+  }
+  
+  .modal-header {
+    padding: 30rpx;
+    border-bottom: 1rpx solid #eee;
+  }
+  
+  .modal-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  .modal-content {
+    padding: 30rpx;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  
+  .modal-button {
+    width: 100%;
+    margin-bottom: 15rpx;
+    background-color: #1A237E;
+    color: white;
+  }
+  
+  .number-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .number-button {
+    width: 30%;
+    margin-bottom: 20rpx;
+    background-color: #5C6BC0;
+    color: white;
+  }
+  
+  .player-grid {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .player-button {
+    width: 100%;
+    margin-bottom: 20rpx;
+    background-color: #3949AB;
+    color: white;
+  }
+  
+  .modal-footer {
+    padding: 20rpx;
+    border-top: 1rpx solid #eee;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .modal-cancel-button {
+    background-color: #E53935;
+    color: white;
+  }
