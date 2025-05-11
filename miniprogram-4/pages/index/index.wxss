@@ -20,7 +20,7 @@
     flex: 0 0 auto; /* 不自动扩展 */
     max-height: 40vh; /* 最大高度 */
     overflow-y: auto; /* 支持滚动 */
-    margin-bottom: 15rpx; /* 缩小间距 */
+    margin-bottom: 20rpx; /* 缩小间距 */
   }
   
   /* 中间区：操作按钮 */

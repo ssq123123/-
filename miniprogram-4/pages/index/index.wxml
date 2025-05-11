@@ -1,15 +1,20 @@
 <!--pages/index/index.wxml-->
-<view class="container">
+<view class="container" style="width: 744rpx; display: flex; box-sizing: border-box">
+<!-- 自动抽水状态提示 -->
+<view class="water-status card" wx:if="{{autoWaterEnabled}}">
+    <text>🔥 自动抽水中 剩余{{autoWaterSettings.remainingRounds}}局 已抽{{totalAutoWater}}分</text>
+  </view>
   <!-- 上半区：位置和分数显示 -->
   <view class="card" style="width: 691rpx; height: 572rpx; display: block; box-sizing: border-box; position: relative; left: 11rpx; top: 14rpx">
     <view class="flex-row between">
-      <view class="countdown-box">剩余时间：{{countdown}}</view>
+      <view class="countdown-box">牌局剩余时间：{{countdown}}</view>
       <view class="game-number">第{{gameNumber}}局</view>
     </view>
     <view class="text-center bold mb-20"></view>
     
     <view wx:if="{{!positionSet}}" class="flex-col center">
-      <text class="mb-20">请选择您的位置：</text>
+      <text class="mb-20">请选择您抽中的位置：</text>
+      <button class="btn btn-settings" style="width: 95%; margin-top: 10rpx; margin-bottom: 20rpx;" bindtap="showSettings">⚙️ 基础设置</button>
       <view class="flex-row">
         <button class="btn btn-primary" bindtap="setPosition" data-position="east" style="width: 281rpx; display: block; box-sizing: border-box; left: 0rpx; top: 0rpx">东</button>
         <button class="btn btn-primary" bindtap="setPosition" data-position="south" style="width: 302rpx; height: 54rpx; display: block; box-sizing: border-box; left: 0rpx; top: 0rpx">南</button>
@@ -28,8 +33,8 @@
         <view class="flex-col center" style="width: 25%;">
           <text>{{positions.north}}</text>
           <text class="score">{{scores.north}}</text>
-          <text class="stats-text" wx:if="{{selfWinDuration.north > 0}}">
-            {{selfWinDuration.north}}分未自摸
+          <text class="stats-text">
+            {{formattedSelfWinTimes.north}}未自摸
           </text>
           <text class="stats-text">累计码:{{totalCodes.north}}</text>
         </view>
@@ -39,16 +44,16 @@
         <view class="flex-col center" style="width: 25%;">
           <text>{{positions.west}}</text>
           <text class="score">{{scores.west}}</text>
-          <text class="stats-text" wx:if="{{selfWinDuration.west > 0}}">
-            {{selfWinDuration.west}}分未自摸
+          <text class="stats-text">
+            {{formattedSelfWinTimes.west}}未自摸
           </text>
           <text class="stats-text">累计码:{{totalCodes.west}}</text>
         </view>
         <view class="flex-col center" style="width: 25%;">
           <text>{{positions.east}}</text>
           <text class="score">{{scores.east}}</text>
-          <text class="stats-text" wx:if="{{selfWinDuration.east > 0}}">
-            {{selfWinDuration.east}}分未自摸
+          <text class="stats-text">
+            {{formattedSelfWinTimes.east}}未自摸
           </text>
           <text class="stats-text">累计码:{{totalCodes.east}}</text>
         </view>
@@ -58,8 +63,8 @@
         <view class="flex-col center" style="width: 25%;">
           <text>{{positions.south}}</text>
           <text class="score">{{scores.south}}</text>
-          <text class="stats-text" wx:if="{{selfWinDuration.south > 0}}">
-            {{selfWinDuration.south}}分未自摸
+          <text class="stats-text">
+            {{formattedSelfWinTimes.south}}未自摸
           </text>
           <text class="stats-text">累计码:{{totalCodes.south}}</text>
         </view>
@@ -71,14 +76,16 @@
   <view class="card" wx:if="{{positionSet}}">
     <view class="flex-row center mb-20">
       <button class="btn btn-secondary" bindtap="resetGame">重新开始</button>
+      <button class="btn btn-secondary" bindtap="showAutoWaterSettings">抽水设置</button>
+      <switch checked="{{autoWaterEnabled}}" bindchange="toggleAutoWater" />
     </view>
-    
+
     <view class="flex-row" style="flex-wrap: wrap;">
-      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="east">东家操作</button>
-      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="south">南家操作</button>
-      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="west">西家操作</button>
-      <button class="btn btn-primary" style="width: 45%;" bindtap="showActionModal" data-target="north">北家操作</button>
-      <button class="btn btn-settings" style="width: 95%; margin-top: 20rpx;" bindtap="showSettings">⚙️ 高级设置</button>
+      <button class="btn btn-primary" style="width: 45%;" 
+              wx:for="{{['east','south','west','north']}}" wx:key="index"
+              bindtap="showActionModal" data-target="{{item}}">
+        {{positions[item]}}家操作
+      </button>
     </view>
   </view>
   
@@ -123,7 +130,7 @@
   
   <!-- 设置模态框 -->
   <modal class="settings-modal" hidden="{{!showSettingsModal}}" bindcancel="hideSettings">
-    <view class="modal-title">游戏设置</view>
+    <view class="modal-title">基础设置</view>
     <form bindsubmit="saveSettings">
       <view class="setting-item">
         <text>抽水扣分数：</text>
@@ -146,14 +153,42 @@
       <view class="setting-item">
         <text>记录字体大小：</text>
         <slider 
+          name="fontSize"
           value="{{settings.fontSize}}" 
-          min="20" 
+          min="01" 
           max="40" 
           show-value 
           bindchange="onFontSizeChange"
         />
       </view>
-      <button form-type="submit" hidden="true"></button>
+      <!-- 添加提交按钮 -->
+      <button form-type="submit">我才是确定</button>
+    </form>
+  </modal>
+
+  <!-- 自动抽水设置模态框 -->
+  <modal class="settings-modal" hidden="{{!showAutoWaterSettingsModal}}" bindcancel="hideAutoWaterSettings">
+    <view class="modal-title">🎚️ 自动抽水设置</view>
+    <form bindsubmit="saveAutoWaterSettings">
+      <view class="setting-item">
+        <text>总抽水局数：</text>
+        <input 
+          type="number" 
+          name="totalRounds" 
+          value="{{autoWaterSettings.totalRounds}}" 
+          placeholder="请输入数字"
+        />
+      </view>
+      <view class="setting-item">
+        <text>每局抽分数：</text>
+        <input 
+          type="number" 
+          name="waterPerRound" 
+          value="{{autoWaterSettings.waterPerRound}}" 
+          placeholder="默认2分"
+        />
+      </view>
+      <button form-type="submit" class="btn-confirm">✅ 保存</button>
     </form>
   </modal>
 </view>

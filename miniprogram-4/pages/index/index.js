@@ -36,12 +36,21 @@ Page({
     lastSelfWinTime: { east: 0, south: 0, west: 0, north: 0 },
     totalCodes: { east: 0, south: 0, west: 0, north: 0 },
     selfWinDuration: { east: 0, south: 0, west: 0, north: 0 },
+    formattedSelfWinTimes: { east: '00:00', south: '00:00', west: '00:00', north: '00:00' },
     updateInterval: null,
     showSettingsModal: false,
     settings: {
       waterValue: 2,
       baseScore: 100,
       fontSize: 26
+    },
+    autoWaterEnabled: false,
+    totalAutoWater: 0,
+    showAutoWaterSettingsModal: false,
+    autoWaterSettings: {
+      totalRounds: 10,
+      waterPerRound: 2,
+      remainingRounds: 0
     }
   },
 
@@ -49,9 +58,25 @@ Page({
     this.actionModal = this.selectComponent('#actionModal');
     this.numberModal = this.selectComponent('#numberModal');
     this.playerModal = this.selectComponent('#playerModal');
+    
     const savedSettings = wx.getStorageSync('gameSettings');
     if (savedSettings) {
       this.setData({ settings: savedSettings });
+    }
+    
+    const autoWaterStatus = wx.getStorageSync('autoWaterStatus');
+    if (autoWaterStatus !== undefined) {
+      this.setData({ autoWaterEnabled: autoWaterStatus });
+    }
+
+    const savedAutoWaterSettings = wx.getStorageSync('autoWaterSettings');
+    if (savedAutoWaterSettings) {
+      this.setData({ 
+        autoWaterSettings: {
+          ...savedAutoWaterSettings,
+          remainingRounds: savedAutoWaterSettings.remainingRounds
+        }
+      });
     }
   },
 
@@ -73,7 +98,8 @@ Page({
     const myPosition = e.currentTarget.dataset.position;
     const positions = this.calculatePositions(myPosition);
     const baseScore = this.data.settings.baseScore;
-    
+    const now = Date.now();
+
     this.setData({
       myPosition,
       positions,
@@ -92,7 +118,20 @@ Page({
         `[⏹对家] ${positions[this.getRelativePosition(myPosition, 'opposite')]} ➜ 当前分数：💰${baseScore}`,
         `[🔽下家] ${positions[this.getRelativePosition(myPosition, 'down')]} ➜ 当前分数：💰${baseScore}`,
         `🪄小精灵：牌局已初始化完成，祝主人旗开得胜！✨`
-      ]
+      ],
+      lastSelfWinTime: {
+        east: now,
+        south: now,
+        west: now,
+        north: now
+      },
+      formattedSelfWinTimes: {
+        east: '00:00',
+        south: '00:00',
+        west: '00:00',
+        north: '00:00'
+      },
+      totalAutoWater: 0
     }, () => {
       this.startCountdown();
       this.startUpdateInterval();
@@ -103,14 +142,14 @@ Page({
   startCountdown() {
     let seconds = 4 * 3600;
     if (this.data.timer) clearInterval(this.data.timer);
-    
+
     this.data.timer = setInterval(() => {
       seconds--;
       const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
       const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
       const s = (seconds % 60).toString().padStart(2, '0');
       this.setData({ countdown: `${h}:${m}:${s}` });
-      
+
       if (seconds <= 0) clearInterval(this.data.timer);
     }, 1000);
   },
@@ -119,21 +158,28 @@ Page({
     if (this.data.updateInterval) clearInterval(this.data.updateInterval);
     this.data.updateInterval = setInterval(() => {
       this.updateSelfWinDuration();
-    }, 60000);
+    }, 1000);
     this.updateSelfWinDuration();
   },
 
   updateSelfWinDuration() {
     const now = Date.now();
     const durations = {};
+    const formattedTimes = {};
+
     ['east', 'south', 'west', 'north'].forEach(position => {
-      if (this.data.lastSelfWinTime[position] > 0) {
-        durations[position] = Math.floor((now - this.data.lastSelfWinTime[position]) / 60000);
-      } else {
-        durations[position] = 0;
-      }
+      const durationMs = now - this.data.lastSelfWinTime[position];
+      const minutes = Math.floor(durationMs / 60000);
+      const seconds = Math.floor((durationMs % 60000) / 1000);
+
+      durations[position] = durationMs;
+      formattedTimes[position] = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     });
-    this.setData({ selfWinDuration: durations });
+
+    this.setData({
+      selfWinDuration: durations,
+      formattedSelfWinTimes: formattedTimes
+    });
   },
 
   calculatePositions(myPosition) {
@@ -152,7 +198,7 @@ Page({
   getRelativePosition(position, relation) {
     const positionOrder = ['east', 'south', 'west', 'north'];
     const index = positionOrder.indexOf(position);
-    
+
     switch (relation) {
       case 'up': return positionOrder[(index + 3) % 4];
       case 'opposite': return positionOrder[(index + 2) % 4];
@@ -164,7 +210,7 @@ Page({
   showActionModal(e) {
     const target = e.currentTarget.dataset.target;
     this.setData({ currentTarget: target });
-    
+
     this.actionModal.show({
       title: `选择${this.data.positions[target]}家的操作`,
       actions: [
@@ -182,10 +228,10 @@ Page({
   handleAction(e) {
     const action = e.detail;
     this.setData({ currentAction: action });
-    
+
     switch (action) {
       case 'selfWin':
-        this.numberModal.show({ 
+        this.numberModal.show({
           title: '选择自摸的码数',
           numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         });
@@ -212,7 +258,7 @@ Page({
   handlePlayerConfirm(e) {
     const player = e.detail;
     this.setData({ currentPlayer: player });
-    
+
     if (['robbedKong', 'kongWin'].includes(this.data.currentAction)) {
       this.numberModal.show({
         title: '选择中码数量',
@@ -234,7 +280,8 @@ Page({
       return;
     }
 
-    const { currentTarget, positions, scores, stats, settings } = this.data;
+    const that = this;
+    const { currentTarget, positions, scores, stats, settings } = that.data;
     const newScores = { ...scores };
     const newStats = JSON.parse(JSON.stringify(stats));
     let message = '';
@@ -242,22 +289,7 @@ Page({
     const otherPlayers = ['east', 'south', 'west', 'north'].filter(p => p !== currentTarget);
 
     if (['selfWin', 'kongWin', 'robbedKong'].includes(action)) {
-      this.setData({ gameNumber: this.data.gameNumber + 1 });
-    }
-
-    if (action === 'selfWin') {
-      const newCodes = { ...this.data.totalCodes };
-      newCodes[currentTarget] += number || 0;
-      
-      this.setData({
-        lastSelfWinTime: {
-          ...this.data.lastSelfWinTime,
-          [currentTarget]: Date.now()
-        },
-        totalCodes: newCodes
-      }, () => {
-        this.updateSelfWinDuration();
-      });
+      that.setData({ gameNumber: that.data.gameNumber + 1 });
     }
 
     switch (action) {
@@ -331,8 +363,32 @@ Page({
         const waterValue = settings.waterValue;
         newScores[currentTarget] -= waterValue;
         scoreChange[currentTarget] = -waterValue;
-        message = `💧【抽水操作】\n🚰 ${positions[currentTarget]}家被抽水${waterValue}分\n\n📌 分数变动：\n`;
+        message = `💧【手动抽水】\n🚰 ${positions[currentTarget]}家被抽水${waterValue}分\n\n📌 分数变动：\n`;
         break;
+    }
+
+    if (
+      this.data.autoWaterEnabled &&
+      ['selfWin', 'robbedKong', 'kongWin'].includes(action) &&
+      this.data.autoWaterSettings.remainingRounds > 0
+    ) {
+      const { waterPerRound } = this.data.autoWaterSettings;
+      const remaining = this.data.autoWaterSettings.remainingRounds - 1;
+
+      newScores[currentTarget] -= waterPerRound;
+      scoreChange[currentTarget] -= waterPerRound;
+      
+      message += `\n💧【自动抽水】${positions[currentTarget]}被扣${waterPerRound}分（剩余${remaining}局）`;
+
+      this.setData({
+        totalAutoWater: this.data.totalAutoWater + waterPerRound,
+        'autoWaterSettings.remainingRounds': remaining
+      });
+
+      if (remaining === 0) {
+        this.setData({ autoWaterEnabled: false });
+        wx.showToast({ title: '✅ 自动抽水已完成', icon: 'none' });
+      }
     }
 
     Object.entries(scoreChange).forEach(([p, change]) => {
@@ -344,30 +400,39 @@ Page({
       message += '\n';
     });
 
-    switch (action) {
-      case 'hiddenKong':
-        message += `\n⚠️ 暗杠预警：${positions[currentTarget]}家累计暗杠${newStats[currentTarget].kong}次`;
-        break;
-      case 'addedKong':
-        message += `\n📆 本局已补杠：${newStats[currentTarget].kong}次`;
-        break;
-      case 'kongWin':
-        message += `\n🏅 成就解锁：${positions[currentTarget]}家达成「杠开大师」`;
-        break;
-    }
-
     this.setData({
       scores: newScores,
       stats: newStats,
-      messageLog: [...this.data.messageLog, message],
+      messageLog: [...that.data.messageLog, message],
       currentAction: null,
       currentTarget: null,
       currentPlayer: null
     }, () => {
-      this.scrollToBottom();
+      that.scrollToBottom();
     });
 
     this.hideAllModals();
+  },
+
+  toggleAutoWater() {
+    const enabled = !this.data.autoWaterEnabled;
+    const settings = this.data.autoWaterSettings;
+    
+    if (enabled) {
+      settings.remainingRounds = settings.totalRounds;
+    }
+
+    this.setData({
+      autoWaterEnabled: enabled,
+      'autoWaterSettings.remainingRounds': settings.remainingRounds
+    });
+    
+    wx.setStorageSync('autoWaterStatus', enabled);
+    wx.showToast({
+      title: enabled ? `🔛 自动抽水已开启（剩余${settings.remainingRounds}局）` : '🔴 自动抽水已关闭',
+      icon: 'none',
+      duration: 1500
+    });
   },
 
   hideAllModals() {
@@ -392,21 +457,26 @@ Page({
   },
 
   saveSettings(e) {
-    const formData = e.detail.value; 
-    const fontSize = this.data.settings.fontSize;
+    const that = this;
+    const formData = e.detail.value;
 
     const newSettings = {
-        waterValue: Math.max(0, parseInt(formData.waterValue)) || 2,
-        baseScore: Math.max(0, parseInt(formData.baseScore)) || 100,
-        fontSize: this.data.settings.fontSize // 直接取实时更新的值
-      };
+      waterValue: Math.max(0, parseInt(formData.waterValue) || 2),
+      baseScore: Math.max(0, parseInt(formData.baseScore) || 100),
+      fontSize: parseInt(formData.fontSize) || that.data.settings.fontSize
+    };
 
-    // 更新数据并关闭模态框
-  this.setData({ 
-    settings: newSettings,
-    showSettingsModal: false
-  });
-    wx.setStorageSync('gameSettings', newSettings);
+    that.setData({
+      settings: newSettings,
+      showSettingsModal: false
+    }, () => {
+      wx.setStorageSync('gameSettings', newSettings);
+      wx.showToast({
+        title: '设置已保存',
+        icon: 'success',
+        duration: 2000
+      });
+    });
   },
 
   resetGame() {
@@ -422,7 +492,7 @@ Page({
             positionSet: false,
             myPosition: '',
             positions: {},
-            scores: { 
+            scores: {
               east: baseScore,
               south: baseScore,
               west: baseScore,
@@ -441,10 +511,42 @@ Page({
             gameNumber: 1,
             lastSelfWinTime: { east: 0, south: 0, west: 0, north: 0 },
             totalCodes: { east: 0, south: 0, west: 0, north: 0 },
-            selfWinDuration: { east: 0, south: 0, west: 0, north: 0 }
+            selfWinDuration: { east: 0, south: 0, west: 0, north: 0 },
+            formattedSelfWinTimes: { east: '00:00', south: '00:00', west: '00:00', north: '00:00' },
+            totalAutoWater: 0,
+            'autoWaterSettings.remainingRounds': this.data.autoWaterSettings.totalRounds
           });
         }
       }
+    });
+  },
+
+  showAutoWaterSettings() {
+    this.setData({ showAutoWaterSettingsModal: true });
+  },
+
+  hideAutoWaterSettings() {
+    this.setData({ showAutoWaterSettingsModal: false });
+  },
+
+  saveAutoWaterSettings(e) {
+    const formData = e.detail.value;
+    const newSettings = {
+      totalRounds: parseInt(formData.totalRounds) || 10,
+      waterPerRound: parseInt(formData.waterPerRound) || 2,
+      remainingRounds: parseInt(formData.totalRounds) || 10
+    };
+
+    this.setData({
+      autoWaterSettings: newSettings,
+      showAutoWaterSettingsModal: false
+    }, () => {
+      wx.setStorageSync('autoWaterSettings', newSettings);
+      wx.showToast({
+        title: '自动抽水设置已保存',
+        icon: 'success',
+        duration: 2000
+      });
     });
   }
 });
